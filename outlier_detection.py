@@ -1,6 +1,7 @@
+from time import time
+
 import pandas as pd
 import xlsxwriter
-
 from pyod.models.hbos import HBOS
 from pyod.models.iforest import IForest
 from pyod.models.knn import KNN
@@ -24,7 +25,7 @@ def write_to_xlsx():
     row = 1
     bold = workbook.add_format({'bold': True})
 
-    worksheet.set_column(0, 6, 15)
+    worksheet.set_column(0, 7, 15)
     worksheet.set_column(1, 1, 30)
     worksheet.set_column(4, 4, 40)
 
@@ -35,6 +36,7 @@ def write_to_xlsx():
     worksheet.write(0, 4, "outlier_detection_algorithm", bold)
     worksheet.write(0, 5, "score_method", bold)
     worksheet.write(0, 6, "score", bold)
+    worksheet.write(0, 7, "execution_time", bold)
     worksheet.center_horizontally()
     worksheet.center_vertically()
 
@@ -49,6 +51,7 @@ def write_to_xlsx():
         worksheet.write(row, 4, item[0])
         worksheet.write(row, 5, "Accuracy")
         worksheet.write(row, 6, item[2])
+        worksheet.write(row, 7, item[4])
         row += 1
 
     workbook.close()
@@ -98,41 +101,46 @@ def run_all_models(all_array, labels, pca, dataset_name):
         transformer = IncrementalPCA()
         all_array = transformer.fit_transform(all_array)
 
+    now = time()
     clf = OCSVM()
     clf.fit(all_array)
     print("OCSVM")
     temp = print_score(picture_name, clf.labels_, labels)
-    output_table.append(("OCSVM", all_array.shape, temp, dataset_name))
+    output_table.append(("OCSVM", all_array.shape, temp, dataset_name, time() - now))
 
     # clf = AutoEncoder(epochs=30)
     # clf.fit(all_array)
     # print("Auto-encoder")
     # temp = print_score(picture_name, clf.labels_, labels)
-    # output_table.append(("Auto-encoder", all_array.shape, temp, dataset_name))
+    # output_table.append(("Auto-encoder", all_array.shape, temp, dataset_name,time() - now))
 
+    now = time()
     clf = HBOS()
     clf.fit(all_array)
     print("HBOS")
     temp = print_score(picture_name, clf.labels_, labels)
-    output_table.append(("HBOS", all_array.shape, temp, dataset_name))
+    output_table.append(("HBOS", all_array.shape, temp, dataset_name, time() - now))
 
+    now = time()
     clf = IForest()
     clf.fit(all_array)
     print("IForest")
     temp = print_score(picture_name, clf.labels_, labels)
-    output_table.append(("IFrorest", all_array.shape, temp, dataset_name))
+    output_table.append(("IFrorest", all_array.shape, temp, dataset_name, time() - now))
 
+    now = time()
     clf = KNN()
     clf.fit(all_array)
     print("KNN")
     temp = print_score(picture_name, clf.labels_, labels)
-    output_table.append(("KNN", all_array.shape, temp, dataset_name))
+    output_table.append(("KNN", all_array.shape, temp, dataset_name, time() - now))
 
+    now = time()
     clf = PCA()
     clf.fit(all_array)
     print("PCA")
     temp = print_score(picture_name, clf.labels_, labels)
-    output_table.append(("PCA", all_array.shape, temp, dataset_name))
+    output_table.append(("PCA", all_array.shape, temp, dataset_name, time() - now))
 
 
 for input_data in inputs_dir:
