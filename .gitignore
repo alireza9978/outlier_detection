@@ -1,10 +1,11 @@
 # Add any directories, files, or patterns you don't want to be tracked by version control
 
 .idea/
-datasets/
-out/
-paper/
+feature_extractor_images/
 
+result.xlsx
+
+*.jpg
 *.log
 *.out
 *.aux
