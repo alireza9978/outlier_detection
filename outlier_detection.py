@@ -1,6 +1,6 @@
 import pandas as pd
+import xlsxwriter
 
-from pyod.models.auto_encoder import AutoEncoder
 from pyod.models.hbos import HBOS
 from pyod.models.iforest import IForest
 from pyod.models.knn import KNN
@@ -15,6 +15,43 @@ inputs_dir = [("./extracted_feature/flickr_DenseNet121.csv", "./datasets/flickr/
               ("./extracted_feature/flickr_ResNet101V2.csv", "./datasets/flickr/labels.csv"),
               ("./extracted_feature/flickr_ResNet152V2.csv", "./datasets/flickr/labels.csv")]
 output_table = []
+
+
+def write_to_xlsx():
+    workbook = xlsxwriter.Workbook('result.xlsx')
+    worksheet = workbook.add_worksheet()
+
+    row = 1
+    bold = workbook.add_format({'bold': True})
+
+    worksheet.set_column(0, 6, 15)
+    worksheet.set_column(1, 1, 30)
+    worksheet.set_column(4, 4, 40)
+
+    worksheet.write(0, 0, "dataset", bold)
+    worksheet.write(0, 1, "feature_extractor_model", bold)
+    worksheet.write(0, 2, "feature_count", bold)
+    worksheet.write(0, 3, "item_count", bold)
+    worksheet.write(0, 4, "outlier_detection_algorithm", bold)
+    worksheet.write(0, 5, "score_method", bold)
+    worksheet.write(0, 6, "score", bold)
+    worksheet.center_horizontally()
+    worksheet.center_vertically()
+
+    for item in output_table:
+        _ = str(item[3]).split(".")[0]
+        feature_extractor_model = _.split("_")[1]
+        data_set_name = _.split("_")[0]
+        worksheet.write(row, 0, data_set_name)
+        worksheet.write(row, 1, feature_extractor_model)
+        worksheet.write(row, 2, item[1][1])
+        worksheet.write(row, 3, item[1][0])
+        worksheet.write(row, 4, item[0])
+        worksheet.write(row, 5, "Accuracy")
+        worksheet.write(row, 6, item[2])
+        row += 1
+
+    workbook.close()
 
 
 def print_score(picture_names, pyod_labels, labels):
@@ -49,6 +86,7 @@ def print_score(picture_names, pyod_labels, labels):
     print("wrong_inlier", wrong_human)
     print("wrong_outlier", wrong_not_human)
     print("accuracy", correct / count)
+
     return correct / count
 
 
@@ -105,4 +143,4 @@ for input_data in inputs_dir:
     run_all_models(all_array, labels, False, name)
     run_all_models(all_array, labels, True, name)
 
-print(output_table)
+write_to_xlsx()
