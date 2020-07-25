@@ -7,7 +7,11 @@ from pyod.models.iforest import IForest
 from pyod.models.knn import KNN
 from pyod.models.ocsvm import OCSVM
 from pyod.models.pca import PCA
+from pyod.utils.utility import precision_n_scores
+from pyod.utils.utility import standardizer
 from sklearn.decomposition import IncrementalPCA
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import train_test_split
 
 inputs_dir = [("./extracted_feature/flickr_DenseNet121.csv", "./datasets/flickr/labels.csv"),
               ("./extracted_feature/flickr_DenseNet169.csv", "./datasets/flickr/labels.csv"),
@@ -34,11 +38,10 @@ def write_to_xlsx():
     worksheet.write(0, 2, "feature_count", bold)
     worksheet.write(0, 3, "item_count", bold)
     worksheet.write(0, 4, "outlier_detection_algorithm", bold)
-    worksheet.write(0, 5, "score_method", bold)
-    worksheet.write(0, 6, "score", bold)
-    worksheet.write(0, 7, "execution_time", bold)
-    worksheet.center_horizontally()
-    worksheet.center_vertically()
+    worksheet.write(0, 5, "execution_time", bold)
+    worksheet.write(0, 6, "score_ROC", bold)
+    worksheet.write(0, 7, "score_PRN", bold)
+    worksheet.write(0, 8, "score_acc", bold)
 
     for item in output_table:
         _ = str(item[3]).split(".")[0]
@@ -49,106 +52,113 @@ def write_to_xlsx():
         worksheet.write(row, 2, item[1][1])
         worksheet.write(row, 3, item[1][0])
         worksheet.write(row, 4, item[0])
-        worksheet.write(row, 5, "Accuracy")
-        worksheet.write(row, 6, item[2])
-        worksheet.write(row, 7, item[4])
+        worksheet.write(row, 5, item[4])
+        worksheet.write(row, 6, item[2][0])
+        worksheet.write(row, 7, item[2][1])
+        worksheet.write(row, 8, item[2][2])
         row += 1
 
     workbook.close()
 
 
-def print_score(picture_names, pyod_labels, labels):
+def print_score(picture_names, test_scores, y_test):
     count = 0
     correct_human = 0
     correct_not_human = 0
     wrong_human = 0
     wrong_not_human = 0
     for file in picture_names:
-        is_human = labels.loc[file][0] == 1
-        is_not_human = labels.loc[file][0] == 0
+        is_human = data_set_labels.loc[file][0] == 1
+        is_not_human = data_set_labels.loc[file][0] == 0
 
-        output = pyod_labels[count]
+        output = test_scores[count]
         if is_human:
-            if output == 0:
+            if output > 0.50:
                 correct_human += 1
             else:
                 wrong_human += 1
         if is_not_human:
-            if output == 1:
-                correct_not_human += 1
-            else:
+            if output > 0.50:
                 wrong_not_human += 1
+            else:
+                correct_not_human += 1
         count += 1
 
     correct = correct_human + correct_not_human
-
-    print("count", count)
-    print("correct", correct)
-    print("correct_inlier", correct_human)
-    print("correct_outlier", correct_not_human)
-    print("wrong_inlier", wrong_human)
-    print("wrong_outlier", wrong_not_human)
-    print("accuracy", correct / count)
-
-    return correct / count
+    roc = round(roc_auc_score(y_test, test_scores), ndigits=4)
+    prn = round(precision_n_scores(y_test, test_scores), ndigits=4)
+    return roc, prn, correct / count
 
 
-def run_all_models(all_array, labels, pca, dataset_name):
+def run_all_models(all_array, labels, pca, data_set_name):
     picture_name = all_array.get("# img", 1)
     all_array = all_array.drop("# img", 1)
+
+    # standardizing data for processing
+    all_array = standardizer(all_array)
+
+    y = labels.get("in").to_numpy()
+    x_train, x_test, y_train, y_test, picture_train, picture_test = train_test_split(all_array, y, picture_name,
+                                                                                     test_size=0.4)
 
     if pca:
         transformer = IncrementalPCA()
         all_array = transformer.fit_transform(all_array)
 
+    print("OCSVM")
     now = time()
     clf = OCSVM()
-    clf.fit(all_array)
-    print("OCSVM")
-    temp = print_score(picture_name, clf.labels_, labels)
-    output_table.append(("OCSVM", all_array.shape, temp, dataset_name, time() - now))
+    clf.fit(x_train)
+    test_scores = clf.decision_function(x_test)
+    temp = print_score(picture_test, test_scores, y_test)
+    output_table.append(("OCSVM", all_array.shape, temp, data_set_name, time() - now))
 
-    # clf = AutoEncoder(epochs=30)
-    # clf.fit(all_array)
     # print("Auto-encoder")
-    # temp = print_score(picture_name, clf.labels_, labels)
+    # clf = AutoEncoder(epochs=30)
+    # clf.fit(x_train)
+    # test_scores = clf.decision_function(x_test)
+    # temp = print_score(picture_test, test_scores, y_test)
     # output_table.append(("Auto-encoder", all_array.shape, temp, dataset_name,time() - now))
 
+    print("HBOS")
     now = time()
     clf = HBOS()
-    clf.fit(all_array)
-    print("HBOS")
-    temp = print_score(picture_name, clf.labels_, labels)
-    output_table.append(("HBOS", all_array.shape, temp, dataset_name, time() - now))
+    clf.fit(x_train)
+    test_scores = clf.decision_function(x_test)
+    temp = print_score(picture_test, test_scores, y_test)
+    output_table.append(("HBOS", all_array.shape, temp, data_set_name, time() - now))
 
+    print("IForest")
     now = time()
     clf = IForest()
-    clf.fit(all_array)
-    print("IForest")
-    temp = print_score(picture_name, clf.labels_, labels)
-    output_table.append(("IFrorest", all_array.shape, temp, dataset_name, time() - now))
+    clf.fit(x_train)
+    test_scores = clf.decision_function(x_test)
+    temp = print_score(picture_test, test_scores, y_test)
+    output_table.append(("IFrorest", all_array.shape, temp, data_set_name, time() - now))
 
+    print("KNN")
     now = time()
     clf = KNN()
-    clf.fit(all_array)
-    print("KNN")
-    temp = print_score(picture_name, clf.labels_, labels)
-    output_table.append(("KNN", all_array.shape, temp, dataset_name, time() - now))
+    clf.fit(x_train)
+    test_scores = clf.decision_function(x_test)
+    temp = print_score(picture_test, test_scores, y_test)
+    output_table.append(("KNN", all_array.shape, temp, data_set_name, time() - now))
 
+    print("PCA")
     now = time()
     clf = PCA()
-    clf.fit(all_array)
-    print("PCA")
-    temp = print_score(picture_name, clf.labels_, labels)
-    output_table.append(("PCA", all_array.shape, temp, dataset_name, time() - now))
+    clf.fit(x_train)
+    test_scores = clf.decision_function(x_test)
+    temp = print_score(picture_test, test_scores, y_test)
+    output_table.append(("PCA", all_array.shape, temp, data_set_name, time() - now))
 
 
 for input_data in inputs_dir:
-    labels = pd.read_csv(input_data[1], index_col="img")
-    labels = labels.sort_index()
-    all_array = pd.read_csv(input_data[0])
+    data_set_labels = pd.read_csv(input_data[1], index_col="img")
+    data_set_labels = data_set_labels.sort_index()
+    data_set = pd.read_csv(input_data[0])
     name = str(input_data[0]).split("/")[-1]
-    run_all_models(all_array, labels, False, name)
-    run_all_models(all_array, labels, True, name)
+    run_all_models(data_set, data_set_labels, False, name)
+    run_all_models(data_set, data_set_labels, True, name)
 
 write_to_xlsx()
