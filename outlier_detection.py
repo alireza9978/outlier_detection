@@ -5,8 +5,12 @@ import xlsxwriter
 from pyod.models.hbos import HBOS
 from pyod.models.iforest import IForest
 from pyod.models.knn import KNN
+from pyod.models.mcd import MCD
+from pyod.models.mo_gaal import MO_GAAL
 from pyod.models.ocsvm import OCSVM
 from pyod.models.pca import PCA
+from pyod.models.so_gaal import SO_GAAL
+from pyod.models.sos import SOS
 from pyod.utils.utility import precision_n_scores
 from pyod.utils.utility import standardizer
 from sklearn.decomposition import IncrementalPCA
@@ -127,6 +131,38 @@ def run_all_models(all_array, labels, pca, data_set_name):
     test_scores = clf.decision_function(x_test)
     temp = print_score(picture_test, test_scores, y_test)
     output_table.append(("HBOS", all_array.shape, temp, data_set_name, time() - now))
+
+    print("SO_GAAL")
+    now = time()
+    clf = SO_GAAL()
+    clf.fit(x_train)
+    test_scores = clf.decision_function(x_test)
+    temp = print_score(picture_test, test_scores, y_test)
+    output_table.append(("SO_GAAL", all_array.shape, temp, data_set_name, time() - now))
+
+    print("MO_GAAL")
+    now = time()
+    clf = MO_GAAL()
+    clf.fit(x_train)
+    test_scores = clf.decision_function(x_test)
+    temp = print_score(picture_test, test_scores, y_test)
+    output_table.append(("MO_GAAL", all_array.shape, temp, data_set_name, time() - now))
+
+    print("MCD")
+    now = time()
+    clf = MCD()
+    clf.fit(x_train)
+    test_scores = clf.decision_function(x_test)
+    temp = print_score(picture_test, test_scores, y_test)
+    output_table.append(("MCD", all_array.shape, temp, data_set_name, time() - now))
+
+    print("SOS")
+    now = time()
+    clf = SOS()
+    clf.fit(x_train)
+    test_scores = clf.decision_function(x_test)
+    temp = print_score(picture_test, test_scores, y_test)
+    output_table.append(("SOS", all_array.shape, temp, data_set_name, time() - now))
 
     print("IForest")
     now = time()
