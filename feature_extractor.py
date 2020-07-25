@@ -10,7 +10,8 @@ BATCH_SIZE = 5
 IMG_SHAPE = [IMG_WIDTH, IMG_HEIGHT, 3]
 
 # load data
-data_dir = [('/home/alireza/projects/python/outlier/outlier_detection/datasets/flickr', "flickr")]
+data_dir = [('/home/alireza/projects/python/outlier/outlier_detection/datasets/flickr', "flickr"),
+            ('/home/alireza/projects/python/outlier/outlier_detection/datasets/instagram', "instagram")]
 output_dir = './extracted_feature/'
 extractor_images_output_dir = './feature_extractor_images/'
 
