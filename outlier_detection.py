@@ -6,7 +6,6 @@ from pyod.models.hbos import HBOS
 from pyod.models.iforest import IForest
 from pyod.models.knn import KNN
 from pyod.models.mcd import MCD
-from pyod.models.mo_gaal import MO_GAAL
 from pyod.models.ocsvm import OCSVM
 from pyod.models.pca import PCA
 from pyod.models.so_gaal import SO_GAAL
@@ -43,9 +42,12 @@ def write_to_xlsx():
     worksheet.write(0, 3, "item_count", bold)
     worksheet.write(0, 4, "outlier_detection_algorithm", bold)
     worksheet.write(0, 5, "execution_time", bold)
-    worksheet.write(0, 6, "score_ROC", bold)
-    worksheet.write(0, 7, "score_PRN", bold)
-    worksheet.write(0, 8, "score_acc", bold)
+    worksheet.write(0, 6, "train_score_ROC", bold)
+    worksheet.write(0, 7, "train_score_PRN", bold)
+    worksheet.write(0, 8, "train_score_acc", bold)
+    worksheet.write(0, 9, "test_score_ROC", bold)
+    worksheet.write(0, 10, "test_score_PRN", bold)
+    worksheet.write(0, 11, "test_score_acc", bold)
 
     for item in output_table:
         _ = str(item[3]).split(".")[0]
@@ -60,6 +62,9 @@ def write_to_xlsx():
         worksheet.write(row, 6, item[2][0])
         worksheet.write(row, 7, item[2][1])
         worksheet.write(row, 8, item[2][2])
+        worksheet.write(row, 9, item[5][0])
+        worksheet.write(row, 10, item[5][1])
+        worksheet.write(row, 11, item[5][2])
         row += 1
 
     workbook.close()
@@ -105,6 +110,7 @@ def run_all_models(all_array, labels, pca, data_set_name):
     x_train, x_test, y_train, y_test, picture_train, picture_test = train_test_split(all_array, y, picture_name,
                                                                                      test_size=0.4)
 
+    print(x_train)
     if pca:
         transformer = IncrementalPCA()
         all_array = transformer.fit_transform(all_array)
@@ -115,7 +121,9 @@ def run_all_models(all_array, labels, pca, data_set_name):
     clf.fit(x_train)
     test_scores = clf.decision_function(x_test)
     temp = print_score(picture_test, test_scores, y_test)
-    output_table.append(("OCSVM", all_array.shape, temp, data_set_name, time() - now))
+    train_scores = clf.decision_function(x_train)
+    scores_train = print_score(picture_train, train_scores, y_train)
+    output_table.append(("OCSVM", all_array.shape, temp, data_set_name, time() - now, scores_train))
 
     # print("Auto-encoder")
     # clf = AutoEncoder(epochs=30)
@@ -130,7 +138,9 @@ def run_all_models(all_array, labels, pca, data_set_name):
     clf.fit(x_train)
     test_scores = clf.decision_function(x_test)
     temp = print_score(picture_test, test_scores, y_test)
-    output_table.append(("HBOS", all_array.shape, temp, data_set_name, time() - now))
+    train_scores = clf.decision_function(x_train)
+    scores_train = print_score(picture_train, train_scores, y_train)
+    output_table.append(("HBOS", all_array.shape, temp, data_set_name, time() - now, scores_train))
 
     print("SO_GAAL")
     now = time()
@@ -138,15 +148,18 @@ def run_all_models(all_array, labels, pca, data_set_name):
     clf.fit(x_train)
     test_scores = clf.decision_function(x_test)
     temp = print_score(picture_test, test_scores, y_test)
-    output_table.append(("SO_GAAL", all_array.shape, temp, data_set_name, time() - now))
+    train_scores = clf.decision_function(x_train)
+    scores_train = print_score(picture_train, train_scores, y_train)
+    output_table.append(("SO_GAAL", all_array.shape, temp, data_set_name, time() - now, scores_train))
 
-    print("MO_GAAL")
-    now = time()
-    clf = MO_GAAL()
-    clf.fit(x_train)
-    test_scores = clf.decision_function(x_test)
-    temp = print_score(picture_test, test_scores, y_test)
-    output_table.append(("MO_GAAL", all_array.shape, temp, data_set_name, time() - now))
+    # print("MO_GAAL")
+    # print(x_train.shape)
+    # now = time()
+    # clf = MO_GAAL()
+    # clf.fit(x_train)
+    # test_scores = clf.decision_function(x_test)
+    # temp = print_score(picture_test, test_scores, y_test)
+    # output_table.append(("MO_GAAL", all_array.shape, temp, data_set_name, time() - now, scores_train))
 
     print("MCD")
     now = time()
@@ -154,7 +167,9 @@ def run_all_models(all_array, labels, pca, data_set_name):
     clf.fit(x_train)
     test_scores = clf.decision_function(x_test)
     temp = print_score(picture_test, test_scores, y_test)
-    output_table.append(("MCD", all_array.shape, temp, data_set_name, time() - now))
+    train_scores = clf.decision_function(x_train)
+    scores_train = print_score(picture_train, train_scores, y_train)
+    output_table.append(("MCD", all_array.shape, temp, data_set_name, time() - now, scores_train))
 
     print("SOS")
     now = time()
@@ -162,7 +177,9 @@ def run_all_models(all_array, labels, pca, data_set_name):
     clf.fit(x_train)
     test_scores = clf.decision_function(x_test)
     temp = print_score(picture_test, test_scores, y_test)
-    output_table.append(("SOS", all_array.shape, temp, data_set_name, time() - now))
+    train_scores = clf.decision_function(x_train)
+    scores_train = print_score(picture_train, train_scores, y_train)
+    output_table.append(("SOS", all_array.shape, temp, data_set_name, time() - now, scores_train))
 
     print("IForest")
     now = time()
@@ -170,7 +187,9 @@ def run_all_models(all_array, labels, pca, data_set_name):
     clf.fit(x_train)
     test_scores = clf.decision_function(x_test)
     temp = print_score(picture_test, test_scores, y_test)
-    output_table.append(("IFrorest", all_array.shape, temp, data_set_name, time() - now))
+    train_scores = clf.decision_function(x_train)
+    scores_train = print_score(picture_train, train_scores, y_train)
+    output_table.append(("IFrorest", all_array.shape, temp, data_set_name, time() - now, scores_train))
 
     print("KNN")
     now = time()
@@ -178,7 +197,9 @@ def run_all_models(all_array, labels, pca, data_set_name):
     clf.fit(x_train)
     test_scores = clf.decision_function(x_test)
     temp = print_score(picture_test, test_scores, y_test)
-    output_table.append(("KNN", all_array.shape, temp, data_set_name, time() - now))
+    train_scores = clf.decision_function(x_train)
+    scores_train = print_score(picture_train, train_scores, y_train)
+    output_table.append(("KNN", all_array.shape, temp, data_set_name, time() - now, scores_train))
 
     print("PCA")
     now = time()
@@ -186,7 +207,9 @@ def run_all_models(all_array, labels, pca, data_set_name):
     clf.fit(x_train)
     test_scores = clf.decision_function(x_test)
     temp = print_score(picture_test, test_scores, y_test)
-    output_table.append(("PCA", all_array.shape, temp, data_set_name, time() - now))
+    train_scores = clf.decision_function(x_train)
+    scores_train = print_score(picture_train, train_scores, y_train)
+    output_table.append(("PCA", all_array.shape, temp, data_set_name, time() - now, scores_train))
 
 
 for input_data in inputs_dir:
