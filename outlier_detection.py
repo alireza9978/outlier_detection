@@ -2,10 +2,12 @@ from time import time
 
 import pandas as pd
 import xlsxwriter
+from pyod.models.auto_encoder import AutoEncoder
 from pyod.models.hbos import HBOS
 from pyod.models.iforest import IForest
 from pyod.models.knn import KNN
 from pyod.models.mcd import MCD
+from pyod.models.mo_gaal import MO_GAAL
 from pyod.models.ocsvm import OCSVM
 from pyod.models.pca import PCA
 from pyod.models.so_gaal import SO_GAAL
@@ -110,7 +112,6 @@ def run_all_models(all_array, labels, pca, data_set_name):
     x_train, x_test, y_train, y_test, picture_train, picture_test = train_test_split(all_array, y, picture_name,
                                                                                      test_size=0.4)
 
-    print(x_train)
     if pca:
         transformer = IncrementalPCA()
         all_array = transformer.fit_transform(all_array)
@@ -125,12 +126,15 @@ def run_all_models(all_array, labels, pca, data_set_name):
     scores_train = print_score(picture_train, train_scores, y_train)
     output_table.append(("OCSVM", all_array.shape, temp, data_set_name, time() - now, scores_train))
 
-    # print("Auto-encoder")
-    # clf = AutoEncoder(epochs=30)
-    # clf.fit(x_train)
-    # test_scores = clf.decision_function(x_test)
-    # temp = print_score(picture_test, test_scores, y_test)
-    # output_table.append(("Auto-encoder", all_array.shape, temp, dataset_name,time() - now))
+    print("Auto-encoder")
+    now = time()
+    clf = AutoEncoder(epochs=30)
+    clf.fit(x_train)
+    test_scores = clf.decision_function(x_test)
+    temp = print_score(picture_test, test_scores, y_test)
+    train_scores = clf.decision_function(x_train)
+    scores_train = print_score(picture_train, train_scores, y_train)
+    output_table.append(("Auto-encoder", all_array.shape, temp, data_set_name, time() - now, scores_train))
 
     print("HBOS")
     now = time()
@@ -152,14 +156,15 @@ def run_all_models(all_array, labels, pca, data_set_name):
     scores_train = print_score(picture_train, train_scores, y_train)
     output_table.append(("SO_GAAL", all_array.shape, temp, data_set_name, time() - now, scores_train))
 
-    # print("MO_GAAL")
-    # print(x_train.shape)
-    # now = time()
-    # clf = MO_GAAL()
-    # clf.fit(x_train)
-    # test_scores = clf.decision_function(x_test)
-    # temp = print_score(picture_test, test_scores, y_test)
-    # output_table.append(("MO_GAAL", all_array.shape, temp, data_set_name, time() - now, scores_train))
+    print("MO_GAAL")
+    now = time()
+    clf = MO_GAAL()
+    clf.fit(x_train)
+    test_scores = clf.decision_function(x_test)
+    temp = print_score(picture_test, test_scores, y_test)
+    train_scores = clf.decision_function(x_train)
+    scores_train = print_score(picture_train, train_scores, y_train)
+    output_table.append(("MO_GAAL", all_array.shape, temp, data_set_name, time() - now, scores_train))
 
     print("MCD")
     now = time()
