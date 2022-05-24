@@ -120,7 +120,7 @@ suod==0.0.4
 systemd-python==234
 tensorboard==2.2.1
 tensorboard-plugin-wit==1.6.0.post3
-tensorflow==2.2.0rc3
+tensorflow==2.6.4
 tensorflow-cpu==2.2.0rc3
 tensorflow-estimator==2.2.0
 termcolor==1.1.0
